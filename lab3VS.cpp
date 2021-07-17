@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 		}
 		
 		// TODO Skip over the padding
-		fseek(f, padding, SEEK_CUR);
+		//fseek(f, padding, SEEK_CUR);
 		cout << ftell(f) << endl;
 		cout << i << endl;
 	}
@@ -167,6 +167,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	cout << bytes << endl;
+	cout << bfh.offset << endl;
 	fseek(f, bfh.offset, SEEK_SET);
 	cout << ftell(f) << endl;
 
