@@ -1,10 +1,18 @@
+/*			Adam Martin
+ *			CS130
+ *			07/10/2021
+ *			Lab3
+ *			Bitmap Lab to test our ability to open a bitmap file and read information from it then swap any information as needed and output back to a file again while keeping bitmap intact
+ *			Helped by: TA - C Muncey
+ */
 #include <iostream>
 #include <cstdint>
 #include <cstdio>
+#include <string>
+#include <cstring>
 using namespace std;
 
-/* This removes the padding that C++ would */
-/* automatically add to your structs */
+/* Remove the padding that C++ would add to the struct and Create BitmapFileHeader struct */
 #pragma pack(push, 2)
 struct BitmapFileHeader
 {
@@ -15,9 +23,9 @@ struct BitmapFileHeader
 	uint32_t offset;
 };
 
+/* Create BitmapInfoHeader struct */
 struct BitmapInfoHeader
 {
-	// TODO Write the info header members
 	uint32_t size;
 	int32_t width;
 	int32_t height;
@@ -32,9 +40,9 @@ struct BitmapInfoHeader
 };
 #pragma pack(pop)
 
+/* Create Pixel struct with 3 unsigned ints of 8 bits/1 byte each*/
 struct Pixel
 {
-	// TODO make a struct that contains pixels
 	uint8_t blue;
 	uint8_t green;
 	uint8_t red;
@@ -42,86 +50,74 @@ struct Pixel
 
 int main(int argc, char *argv[])
 {
+	string nameOfFileIn, nameOfFileOut;
 	BitmapFileHeader bfh;
 	BitmapInfoHeader bih;
-	int i, j, padding;
+	int i, j, padding, test = 1;
 	size_t bytes;
 	FILE* f;
 
+	/* Have user input the name of the file that needs to be read and grab information from*/
+	cout << "Name of file to read (make sure to include .bmp): ";
+	cin >> nameOfFileIn;
 
-	// TODO This should open the file given by the user
-	// Remember what you need to do before using arguments
-	f = fopen("lab.bmp", "rb");
+	/* Try to open file given by user and give error if couldnt open1*/
+	f = fopen(nameOfFileIn.c_str(), "rb");
 	if (f == nullptr)
 	{
-		// Let the user know something went wrong
-		perror("lab.bmp");
+		perror(nameOfFileIn.c_str());
 		return -1;
 	}
+
+
 
 	/* Read the file header, make sure it read properly */
 	bytes = fread(&bfh, 1, sizeof(bfh), f);
 	if (bytes != sizeof(bfh))
 	{
-		// TODO Let the user know something went wrong
 		printf("I was unable to read all bytes of file header.. \n");
 		return -1;
 	}
 
-	printf("I was able to read %lu bytes of file header.. \n", bytes);
-
-	// TODO Read the info header and make sure it worked
+	/* Read the info header, make sure it worked read properly */
 	bytes = fread(&bih, 1, sizeof(bih), f);
 	if (bytes != sizeof(bih))
 	{
-		// TODO Let the user know something went wrong
 		printf("I was unable to read all bytes of info header. \n");
 		return -1;
 	}
 
-	printf("I was able to read %lu bytes of file header. \n", bytes);
 
-	/* Calculate the number of padding bytes per row */
-	//padding = (4 - (3 * sizeof(Pixel)) % 4) % 4;
 
-	/* A much cooler (and faster) way to do it */
-	/* This only works when padding to a power of 2 though */
-	//padding = ((3 * sizeof(Pixel)) + 3) & -4;
-	//cout << padding;
-	/* The pixel data starts at the offset given in the file header */
+	/* seek to offset bit just in case it's different and calculate padding*/
 	fseek(f, bfh.offset, SEEK_SET);
 	padding = (4 - (bih.width * sizeof(Pixel)) % 4) % 4;
 
-	// TODO Allocate memory for the pixels
-	// Remember to delete it when you're done with it
+	/* Allocate memory for the pixels of size height * width */
 	Pixel* parray = new Pixel[bih.height * bih.width] ;
-	//cout << bih.width * bih.height;
 	
-	
-	//padding = ((3 * sizeof(*pixels)) + 3) & -4;
-	
-	// TODO Read the pixels row by row (not one at a time)
+	/* Start for loop to being reading information from open file to newly created parray*/
 	for (i = 0; i < bih.height; ++i)
 	{
 
-		// TODO Where do we read to, and how much do we read
+		/* Start reading and use bih.width * i to change reading location each time*/
 		bytes = fread(parray + (bih.width * i), 1, bih.width * sizeof(Pixel), f);
-		// TODO Make sure that fread worked too
+		/* Make sure it worked and print error if not */
 		if (bytes != bih.width * sizeof(Pixel))
 		{
 			// TODO Let the user know something went wrong
 			printf("Only read %lu bytes.\n", bytes);
-			printf("Should have read %d.\n", (bih.width * sizeof(*parray)));
+			printf("Should have read %lu.\n", (bih.width * sizeof(*parray)));
 		}
 		
-		// TODO Skip over the padding
+		/* Skip over extra padding so not pulling it into parray*/
 		fseek(f, padding, SEEK_CUR);
 	}
 
-	// TODO We're done with the input file, so we can close it
+	/* Close opened file because done reading to parray*/
 	fclose(f);
 
-	// TODO Invert the color of every pixel
+	/* Go through every pixel in parray and invert the color */
 	for (i = 0; i < (bih.height * bih.width); ++i)
 	{
 		parray[i].blue = 255 - parray[i].blue;
@@ -129,7 +125,7 @@ int main(int argc, char *argv[])
 		parray[i].red = 255 - parray[i].red;
 	}
 	
-	// TODO Flip the image along the Y axis (left becomes right)
+	/* Use double for loop and swap function to begin going row by row and flipping picture, make sure to do width/2 because flipping two pixels at a time */
 	for (i = 0; i < bih.height; ++i)
 	{
 		for (j = 0; j < (bih.width / 2); ++j)
@@ -138,16 +134,20 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	// TODO Write the new bmp image
-	// The header information won't change, so you can use the one you have
-	f = fopen("output.bmp", "wb");
+	/* Again ask user where they want file output to */
+	cout << "Name of file to Output (make sure to include .bmp): ";
+	cin >> nameOfFileOut;
+
+	/* Open stream for writing and let users know if something went wrong */
+	f = fopen(nameOfFileOut.c_str(), "wb");
 	if (f == nullptr)
 	{
 		// Let the user know something went wrong
-		perror("output.bmp");
+		perror(nameOfFileOut.c_str());
 		return -1;
 	}
 
+	/* Attemp to write first the same BitmapFileHeader and give error if something went wrong */
 	bytes = fwrite(&bfh, 1, sizeof(bfh), f);
 	if (bytes != sizeof(bfh))
 	{
@@ -155,35 +155,37 @@ int main(int argc, char *argv[])
 		printf("I was unable to write all bytes of file header. \n");
 		return -1;
 	}
-	cout << bytes << endl;
+
+	/* Attempt to write the same BitmapInfoHeader and giver error if something went wrong*/
 	bytes = fwrite(&bih, 1, sizeof(bih), f);
 	if (bytes != sizeof(bih))
 	{
-		// TODO Let the user know something went wrong
 		printf("I was unable to write all bytes of info header. \n");
 		return -1;
 	}
-	cout << bytes << endl;
-	cout << bfh.offset << endl;
-	fseek(f, bfh.offset, SEEK_SET);
-	cout << ftell(f) << endl;
 
+	/* Seek to offset bit once again to make sure starting in correct place */
+	fseek(f, bfh.offset, SEEK_SET);
+
+	/* Same as reading into parray before but instead writing new changed information from parray into the output file*/
 	for (i = 0; i < bih.height; ++i)
 	{
 
 		bytes = fwrite(parray + (bih.width * i), 1, bih.width * sizeof(Pixel), f);
 		if (bytes != bih.width * sizeof(Pixel))
 		{
-			// TODO Let the user know something went wrong
-			printf("Only read %lu bytes.\n", bytes);
-			printf("Should have read %d.\n", (bih.width * sizeof(*parray)));
+			printf("Only wrote %lu bytes.\n", bytes);
+			printf("Should have wrote %lu.\n", (bih.width * sizeof(*parray)));
 		}
 		
+		/* Make sure to make own padding or else information wont make sense*/
 		bytes = fwrite("0", 1, padding, f);
 
 	}
 
+	/* Close file and delete parray */
 	fclose(f);
+	delete[] parray;
 	
 	return(0);
 }
