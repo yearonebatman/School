@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 {
 	BitmapFileHeader bfh;
 	BitmapInfoHeader bih;
-	int i, padding;
+	int i, j, padding;
 	//Pixel* pixels;
 	size_t bytes;
 	FILE* f;
@@ -91,10 +91,10 @@ int main(int argc, char *argv[])
 	//cout << padding;
 	/* The pixel data starts at the offset given in the file header */
 	fseek(f, bfh.offset, SEEK_SET);
-	padding = (4 - (3 * sizeof(Pixel)) % 4) % 4;
+	padding = (4 - (bih.width * sizeof(Pixel)) % 4) % 4;
 	// TODO Allocate memory for the pixels
 	// Remember to delete it when you're done with it
-	Pixel* parray = new Pixel[bih.height * bih.width * sizeof(Pixel)] ;
+	Pixel* parray = new Pixel[bih.height * bih.width] ;
 	//cout << bih.width * bih.height;
 	
 	
@@ -121,8 +121,9 @@ int main(int argc, char *argv[])
 		}
 		
 		// TODO Skip over the padding
-		//fseek(f, padding, SEEK_CUR);
-		cout << ftell(f);
+		fseek(f, padding, SEEK_CUR);
+		cout << ftell(f) << endl;
+		cout << i << endl;
 	}
 
 	// TODO We're done with the input file, so we can close it
@@ -131,10 +132,43 @@ int main(int argc, char *argv[])
 	// TODO Invert the color of every pixel
 
 	// TODO Flip the image along the Y axis (left becomes right)
+	/*fseek(f, bfh.offset, SEEK_SET);
+	for (i = 0; i < bih.height; ++i)
+	{
+		for (j = 0; j < (bih.width / 2); ++j)
+		{
+			swap(parray[i * bih.width + j], parray[(i * bih.width) + (bih.width - 1) - j]);
+		}
+	}*/
 
 	// TODO Write the new bmp image
 	// The header information won't change, so you can use the one you have
-	/*f = fopen("output.bmp", "wb");
+	f = fopen("output.bmp", "wb");
+	if (f == nullptr)
+	{
+		// Let the user know something went wrong
+		perror("output.bmp");
+		return -1;
+	}
+
+	bytes = fwrite(&bfh, 1, sizeof(bfh), f);
+	if (bytes != sizeof(bfh))
+	{
+		// TODO Let the user know something went wrong
+		printf("I was unable to write all bytes of file header. \n");
+		return -1;
+	}
+	cout << bytes << endl;
+	bytes = fwrite(&bih, 1, sizeof(bih), f);
+	if (bytes != sizeof(bih))
+	{
+		// TODO Let the user know something went wrong
+		printf("I was unable to write all bytes of info header. \n");
+		return -1;
+	}
+	cout << bytes << endl;
+	fseek(f, bfh.offset, SEEK_SET);
+	cout << ftell(f) << endl;
 
 	for (i = 0; i < bih.height; ++i)
 	{
@@ -147,8 +181,12 @@ int main(int argc, char *argv[])
 			printf("Only read %lu bytes.\n", bytes);
 			printf("Should have read %d.\n", (bih.width * sizeof(*parray)));
 		}
+
+		cout << ftell(f) << endl;
+		cout << i << endl;
 	}
 
-	*/
+	fclose(f);
+	
 	return(0);
 }
