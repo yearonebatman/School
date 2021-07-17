@@ -45,7 +45,6 @@ int main(int argc, char *argv[])
 	BitmapFileHeader bfh;
 	BitmapInfoHeader bih;
 	int i, j, padding;
-	//Pixel* pixels;
 	size_t bytes;
 	FILE* f;
 
@@ -92,6 +91,7 @@ int main(int argc, char *argv[])
 	/* The pixel data starts at the offset given in the file header */
 	fseek(f, bfh.offset, SEEK_SET);
 	padding = (4 - (bih.width * sizeof(Pixel)) % 4) % 4;
+
 	// TODO Allocate memory for the pixels
 	// Remember to delete it when you're done with it
 	Pixel* parray = new Pixel[bih.height * bih.width] ;
@@ -99,19 +99,13 @@ int main(int argc, char *argv[])
 	
 	
 	//padding = ((3 * sizeof(*pixels)) + 3) & -4;
-	cout << bih.width * sizeof(Pixel) << endl;
-	//cout << sizeof(Pixel) << endl;
-	cout << padding << endl;
-	//cout << sizeof(*parray) << endl;
 	
 	// TODO Read the pixels row by row (not one at a time)
 	for (i = 0; i < bih.height; ++i)
 	{
 
-		cout << (bih.width * sizeof(*parray)) << endl;
 		// TODO Where do we read to, and how much do we read
 		bytes = fread(parray + (bih.width * i), 1, bih.width * sizeof(Pixel), f);
-		cout << bytes << endl;
 		// TODO Make sure that fread worked too
 		if (bytes != bih.width * sizeof(Pixel))
 		{
@@ -121,25 +115,28 @@ int main(int argc, char *argv[])
 		}
 		
 		// TODO Skip over the padding
-		//fseek(f, padding, SEEK_CUR);
-		cout << ftell(f) << endl;
-		cout << i << endl;
+		fseek(f, padding, SEEK_CUR);
 	}
 
 	// TODO We're done with the input file, so we can close it
 	fclose(f);
-	
-	// TODO Invert the color of every pixel
 
+	// TODO Invert the color of every pixel
+	for (i = 0; i < (bih.height * bih.width); ++i)
+	{
+		parray[i].blue = 255 - parray[i].blue;
+		parray[i].green = 255 - parray[i].green;
+		parray[i].red = 255 - parray[i].red;
+	}
+	
 	// TODO Flip the image along the Y axis (left becomes right)
-	/*fseek(f, bfh.offset, SEEK_SET);
 	for (i = 0; i < bih.height; ++i)
 	{
 		for (j = 0; j < (bih.width / 2); ++j)
 		{
 			swap(parray[i * bih.width + j], parray[(i * bih.width) + (bih.width - 1) - j]);
 		}
-	}*/
+	}
 
 	// TODO Write the new bmp image
 	// The header information won't change, so you can use the one you have
@@ -175,16 +172,15 @@ int main(int argc, char *argv[])
 	{
 
 		bytes = fwrite(parray + (bih.width * i), 1, bih.width * sizeof(Pixel), f);
-		cout << bytes << endl;
 		if (bytes != bih.width * sizeof(Pixel))
 		{
 			// TODO Let the user know something went wrong
 			printf("Only read %lu bytes.\n", bytes);
 			printf("Should have read %d.\n", (bih.width * sizeof(*parray)));
 		}
+		
+		bytes = fwrite("0", 1, padding, f);
 
-		cout << ftell(f) << endl;
-		cout << i << endl;
 	}
 
 	fclose(f);
